@@ -32,7 +32,7 @@ The integration of IoT data pipelines and machine learning inference within a si
 - Wireless data transmission over Wi-Fi using the ESP8266 NodeMCU
 - Live patient dashboard on the Blynk mobile application for remote monitoring from any location
 - ThingSpeak cloud integration for persistent data logging, graph plotting, and channel-based IoT analytics
-- SVM-based machine learning model for health risk classification trained on validated healthcare datasets
+- SVM-based machine learning model for **three independent risk classifiers**: health, hygiene, and environmental
 - Google Colab environment for model training, evaluation, and prediction workflow
 - LED-based hardware alert indicator triggered on threshold exceedance
 - Environmental monitoring alongside physiological parameters for holistic patient context
@@ -72,8 +72,8 @@ The integration of IoT data pipelines and machine learning inference within a si
 │           MACHINE LEARNING PREDICTION                │
 │                                                      │
 │       [ Google Colab — Python / Scikit-learn ]       │
-│       SVM Classifier trained on healthcare data      │
-│       Health risk prediction: Low / Medium / High    │
+│   3× SVM Classifiers (Health, Hygiene, Environment)  │
+│       Health risk prediction: Low / High             │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -124,13 +124,13 @@ Each sensor parameter is mapped to a dedicated ThingSpeak channel field. The pla
 Simultaneously, live sensor values are pushed to virtual pins on the Blynk server. The Blynk mobile application renders these as gauge widgets, value displays, or time-series charts, providing caregivers and clinicians with immediate visibility into patient status from any location.
 
 **6. Dataset Export and Preprocessing**
-For the machine learning component, a structured healthcare dataset from Kaggle is loaded into Google Colab. Preprocessing includes handling missing values, encoding categorical variables, normalizing feature ranges, and splitting the data into training and test sets.
+For the machine learning component, sensor feeds are exported from ThingSpeak as `feeds.csv`. The dataset is loaded into Google Colab where missing values across all five feature columns are imputed with realistic random values within expected physiological ranges before label generation and model training.
 
 **7. SVM Model Training and Evaluation**
-A Support Vector Machine classifier is trained on the preprocessed dataset. Hyperparameter tuning is performed using cross-validation. Model performance is assessed via accuracy, precision, recall, and confusion matrix metrics.
+Three independent SVM classifiers are trained, one each for health risk, hygiene risk, and environmental risk. Each uses a shared pipeline of `StandardScaler` normalization followed by an RBF-kernel SVM. All three models are evaluated on a 25% held-out test split.
 
 **8. Health Risk Prediction and Alert Generation**
-Patient parameter values — consistent with those collected by the IoT system — are passed as input features to the trained SVM model. The classifier outputs a health risk category. High-risk classifications can be configured to trigger additional alert channels, including notifications through Blynk's alert system.
+Patient parameter values — consistent with those collected by the IoT system — are passed as input features to the trained SVM models. Each classifier independently outputs a binary risk label. High-risk classifications can be configured to trigger additional alert channels, including notifications through Blynk's alert system.
 
 ---
 
@@ -158,24 +158,94 @@ The Support Vector Machine is a supervised learning algorithm that constructs an
 
 SVM generalizes well with smaller training sets relative to neural networks, requires no assumption about the underlying data distribution, and is robust to outliers when using soft-margin formulations with a regularization parameter C.
 
-### Dataset and Preprocessing
+### Input Features
 
-A healthcare dataset sourced from Kaggle containing labeled patient records is used for training. The dataset includes features such as age, body temperature, heart rate, blood pressure, and other clinical indicators, with a target label representing a health risk tier (Low / Medium / High).
+The model uses five features derived directly from the IoT sensor feed:
 
-Preprocessing steps applied in Google Colab:
+| Feature | Column | Description | Demo Range |
+|---|---|---|---|
+| Temperature | `field1` | Ambient / body temperature (°C) | 30–42 °C |
+| Humidity | `field2` | Relative humidity (%) | 30–90% RH |
+| Heart Rate | `field3` | Pulse rate (BPM) | 60–120 BPM |
+| Latitude | `latitude` | GPS latitude | 10.0–30.0 |
+| Longitude | `longitude` | GPS longitude | 70.0–90.0 |
 
-- Missing value handling — rows with null entries are either imputed (median for continuous variables) or removed
-- Categorical encoding — nominal features are one-hot encoded or label-encoded as appropriate
-- Feature scaling — StandardScaler normalization applied to bring all continuous features to a comparable range, which is critical for SVM kernel functions
-- Train-test split — data divided into training (80%) and test (20%) subsets using stratified sampling to preserve class balance
+Missing values in any column are filled with random values sampled uniformly within the ranges above before training.
 
-### Model Training and Evaluation
+### Risk Label Definitions
 
-The SVM classifier is instantiated with an RBF (Radial Basis Function) kernel, which handles nonlinear class boundaries effectively. Hyperparameters C (regularization) and gamma (kernel coefficient) are tuned via grid search with k-fold cross-validation. Model performance is evaluated on the held-out test set using accuracy, precision, recall, F1-score, and a confusion matrix to assess per-class performance.
+Three binary classification targets are derived from median-based thresholds on the dataset:
+
+| Classifier | Label Logic | Rationale |
+|---|---|---|
+| **Health Risk** | Temperature > median **OR** Heart Rate > median | Elevated vitals indicate potential physiological stress |
+| **Hygiene Risk** | Humidity > median | High ambient humidity signals infection or contamination risk |
+| **Environmental Risk** | Temperature > median | High temperature alone flags hazardous ambient conditions |
+
+### Model Pipeline
+
+Each of the three classifiers uses an identical Scikit-learn pipeline:
+
+```python
+Pipeline([
+    ('scaler', StandardScaler()),
+    ('svm', SVC(C=1, kernel='rbf', gamma='scale'))
+])
+```
+
+- **StandardScaler** normalizes all features to zero mean and unit variance — required for SVM kernel functions to treat all features equally regardless of physical units.
+- **RBF kernel** handles nonlinear decision boundaries between risk classes.
+- **C=1** provides a balanced soft-margin regularization.
+- **gamma='scale'** sets the kernel coefficient automatically as `1 / (n_features × X.var())`.
+
+Data is split 75% training / 25% test using `train_test_split` with `random_state=42` for reproducibility. The same split indices are shared across all three classifiers.
+
+### Classification Results
+
+All three SVM classifiers achieved **96.8% accuracy** on the held-out test set (31 samples).
+
+#### Health Risk Classifier
+
+| | Predicted: No Risk | Predicted: At Risk |
+|---|---|---|
+| **Actual: No Risk** | 6 | 0 |
+| **Actual: At Risk** | 1 | 24 |
+
+| Class | Precision | Recall | F1-Score | Support |
+|---|---|---|---|---|
+| No Risk (0) | 0.86 | 1.00 | 0.92 | 6 |
+| At Risk (1) | 1.00 | 0.96 | 0.98 | 25 |
+| **Accuracy** | | | **0.97** | **31** |
+
+#### Hygiene Risk Classifier
+
+| | Predicted: No Risk | Predicted: At Risk |
+|---|---|---|
+| **Actual: No Risk** | 19 | 1 |
+| **Actual: At Risk** | 0 | 11 |
+
+| Class | Precision | Recall | F1-Score | Support |
+|---|---|---|---|---|
+| No Risk (0) | 1.00 | 0.95 | 0.97 | 20 |
+| At Risk (1) | 0.92 | 1.00 | 0.96 | 11 |
+| **Accuracy** | | | **0.97** | **31** |
+
+#### Environmental Risk Classifier
+
+| | Predicted: No Risk | Predicted: At Risk |
+|---|---|---|
+| **Actual: No Risk** | 13 | 0 |
+| **Actual: At Risk** | 1 | 17 |
+
+| Class | Precision | Recall | F1-Score | Support |
+|---|---|---|---|---|
+| No Risk (0) | 0.93 | 1.00 | 0.96 | 13 |
+| At Risk (1) | 1.00 | 0.94 | 0.97 | 18 |
+| **Accuracy** | | | **0.97** | **31** |
 
 ### Prediction Workflow
 
-Once trained, the model accepts a patient's current sensor readings as an input feature vector. The SVM computes the signed distance from the decision hyperplane and returns the predicted health risk class. This inference step is lightweight and can be adapted to run on cloud endpoints or edge devices in future iterations.
+Once trained, each model accepts a patient's current sensor readings as a five-element input vector `[temperature, humidity, heart_rate, latitude, longitude]`. The SVM pipeline applies the same StandardScaler transformation used during training, then computes the signed distance from the decision hyperplane and returns a binary risk label. All three classifiers run independently, so a single reading can simultaneously flag multiple risk types.
 
 ---
 
@@ -200,8 +270,10 @@ The heart rate sensor measures the patient's pulse through either photoplethysmo
 | Blynk dashboard latency | Near real-time display updates with sub-second visual refresh |
 | DHT22 readings | Temperature and humidity values consistent with reference measurements |
 | LED alert behavior | Immediate hardware-level activation upon threshold breach, independent of cloud state |
-| SVM classification accuracy | Satisfactory accuracy on test set; model generalizes well to unseen patient records |
-| Prediction capability | Health risk class returned correctly for representative input feature vectors |
+| Health Risk SVM accuracy | **96.8%** — 1 false negative out of 31 test samples |
+| Hygiene Risk SVM accuracy | **96.8%** — 1 false positive out of 31 test samples |
+| Environmental Risk SVM accuracy | **96.8%** — 1 false negative out of 31 test samples |
+| Prediction capability | All three risk classes returned correctly for representative input feature vectors |
 
 ---
 
@@ -264,7 +336,7 @@ Install the ESP8266 board package in Arduino IDE via the Boards Manager. Install
 
 ### Running the ML Model
 
-Open `ML_Model/health_risk_svm.ipynb` in Google Colab. Upload the dataset from the `Dataset/` folder or mount Google Drive. Execute the notebook cells sequentially: data loading, preprocessing, model training, evaluation, and prediction. Modify the input feature values in the prediction cell to test with custom patient readings.
+Open `ML_Model/electroquest.ipynb` in Google Colab. Upload `feeds.csv` exported from ThingSpeak (or mount Google Drive). Execute the notebook cells sequentially: data loading, missing value imputation, label generation, pipeline training for all three classifiers, evaluation, and prediction. Modify the input feature vector in the prediction cell to test with custom patient readings.
 
 ---
 
@@ -276,13 +348,13 @@ Open `ML_Model/health_risk_svm.ipynb` in Google Colab. Upload the dataset from t
 | Wi-Fi stability | ESP8266 connections occasionally drop under congested 2.4 GHz environments; reconnection logic was added to the firmware loop |
 | Cloud API latency | ThingSpeak enforces a minimum 15-second update interval on free-tier channels, limiting real-time resolution |
 | Data synchronization | Coordinating simultaneous HTTP requests to two cloud platforms (Blynk and ThingSpeak) required careful sequencing to avoid request collisions |
-| Dataset preprocessing | The Kaggle dataset contained missing values and inconsistent feature scales requiring significant cleaning before SVM training could proceed |
+| Dataset preprocessing | The sensor feed contained missing values across all feature columns; random realistic imputation was applied before SVM training could proceed |
 
 ---
 
 ## Conclusion
 
-This project demonstrates a functional end-to-end remote health monitoring system that integrates embedded IoT hardware, cloud-based data visualization, and applied machine learning within a single cohesive architecture. The ESP8266 NodeMCU reliably acquires patient vitals and environmental parameters, transmitting them wirelessly to ThingSpeak and Blynk platforms that provide persistent logging and real-time mobile access respectively. The SVM classifier, trained on a structured Kaggle healthcare dataset, adds an intelligent prediction layer capable of assessing health risk from patient data with reasonable accuracy.
+This project demonstrates a functional end-to-end remote health monitoring system that integrates embedded IoT hardware, cloud-based data visualization, and applied machine learning within a single cohesive architecture. The ESP8266 NodeMCU reliably acquires patient vitals and environmental parameters, transmitting them wirelessly to ThingSpeak and Blynk platforms that provide persistent logging and real-time mobile access respectively. Three independent SVM classifiers — trained on live IoT sensor feeds and achieving 96.8% accuracy each — add an intelligent prediction layer that simultaneously assesses health, hygiene, and environmental risk from a single set of patient readings.
 
 The system validates the feasibility of deploying low-cost IoT infrastructure alongside conventional machine learning workflows in healthcare monitoring contexts. With additional sensor integration, wearable packaging, and deep learning models, the architecture described here provides a strong foundation for clinically meaningful remote patient care systems.
 
