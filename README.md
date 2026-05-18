@@ -9,9 +9,8 @@
 ![ML](https://img.shields.io/badge/ML-SVM%20Classifier-orange?style=for-the-badge)
 ![Language](https://img.shields.io/badge/Language-Python%20%2F%20C%2B%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![IDE](https://img.shields.io/badge/IDE-Arduino%20%2F%20Google%20Colab-darkgreen?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Completed-brightgreen?style=for-the-badge)
 
-*A real-time wireless health monitoring platform that streams patient vitals to cloud dashboards and applies a trained SVM classifier to predict health risks — bridging embedded IoT systems with applied machine learning.*
+A real-time wireless health monitoring platform that streams patient vitals to cloud dashboards and applies a trained SVM classifier to predict health risks
 
 </div>
 
@@ -21,7 +20,7 @@
 
 Healthcare systems worldwide face a growing demand for continuous, remote patient monitoring — particularly for elderly populations, patients with chronic conditions, and post-hospitalization care. Traditional monitoring requires physical presence in clinical settings, limiting scalability and responsiveness. **IoT-enabled health monitoring** addresses this gap by deploying low-cost sensors and wireless microcontrollers that continuously acquire physiological and environmental data, transmitting it to cloud platforms accessible from anywhere.
 
-This project develops a complete **Remote Health Monitoring System** using an ESP8266 NodeMCU as the central processing and communication unit. The system acquires temperature, humidity, and heart rate data in real time, uploads it wirelessly to **ThingSpeak** for cloud storage and graphical analytics, and streams live readings to a **Blynk** mobile dashboard for remote observation. Separately, a **Support Vector Machine (SVM)** model trained on a structured Kaggle healthcare dataset provides a machine learning layer capable of classifying patient data and predicting potential health risks.
+This project develops a Remote Health Monitoring System using an ESP8266 NodeMCU as the central processing and communication unit. The system acquires temperature, humidity, and heart rate data in real time, uploads it wirelessly to ThingSpeak for cloud storage and graphical analytics, and streams live readings to a Blynk mobile dashboard for remote observation. Separately, a Support Vector Machine (SVM) model trained on a structured Kaggle healthcare dataset provides a machine learning layer capable of classifying patient data and predicting potential health risks.
 
 The integration of IoT data pipelines and machine learning inference within a single healthcare framework demonstrates a practical, extensible approach to intelligent remote patient care.
 
@@ -139,7 +138,7 @@ Patient parameter values — consistent with those collected by the IoT system �
 
 ### Blynk IoT
 
-Blynk provides a **drag-and-drop mobile dashboard** that connects directly to the ESP8266 over the internet. Each sensor reading is assigned to a virtual pin, which is polled or pushed by the device firmware at a configurable data rate. Blynk's interface supports multiple widget types — including labeled value displays, historical charts, and threshold-based notification triggers — enabling clinicians or caregivers to monitor patient vitals from any smartphone without any backend infrastructure of their own.
+Blynk provides a drag-and-drop mobile dashboard that connects directly to the ESP8266 over the internet. Each sensor reading is assigned to a virtual pin, which is polled or pushed by the device firmware at a configurable data rate. Blynk's interface supports multiple widget types — including labeled value displays, historical charts, and threshold-based notification triggers — enabling clinicians or caregivers to monitor patient vitals from any smartphone without any backend infrastructure of their own.
 
 The Blynk platform abstracts Wi-Fi connectivity and data routing, making it particularly well suited for rapid IoT prototyping. Its notification system can be extended to send push alerts to registered mobile devices when monitored values cross clinical thresholds.
 
@@ -165,10 +164,10 @@ A healthcare dataset sourced from Kaggle containing labeled patient records is u
 
 Preprocessing steps applied in Google Colab:
 
-- **Missing value handling** — rows with null entries are either imputed (median for continuous variables) or removed
-- **Categorical encoding** — nominal features are one-hot encoded or label-encoded as appropriate
-- **Feature scaling** — StandardScaler normalization applied to bring all continuous features to a comparable range, which is critical for SVM kernel functions
-- **Train-test split** — data divided into training (80%) and test (20%) subsets using stratified sampling to preserve class balance
+- Missing value handling — rows with null entries are either imputed (median for continuous variables) or removed
+- Categorical encoding — nominal features are one-hot encoded or label-encoded as appropriate
+- Feature scaling — StandardScaler normalization applied to bring all continuous features to a comparable range, which is critical for SVM kernel functions
+- Train-test split — data divided into training (80%) and test (20%) subsets using stratified sampling to preserve class balance
 
 ### Model Training and Evaluation
 
@@ -188,7 +187,7 @@ The DHT22 uses a capacitive polymer element to measure relative humidity and a t
 
 ### Heart Rate Sensor
 
-The heart rate sensor measures the patient's pulse through either **photoplethysmography (PPG)** — using an LED and photodetector to detect blood volume changes in peripheral tissue — or via **ECG electrodes** that capture the cardiac electrical signal directly. The output is an analog voltage waveform whose peaks correspond to heartbeat events. The ESP8266's ADC samples this signal, and the firmware extracts beats-per-minute by detecting peak intervals. Heart rate is one of the primary vital signs in clinical assessment, with normal resting values typically between 60–100 BPM; deviations may indicate arrhythmia, dehydration, fever, or cardiovascular distress.
+The heart rate sensor measures the patient's pulse through either photoplethysmography (PPG) — using an LED and photodetector to detect blood volume changes in peripheral tissue — or via **ECG electrodes** that capture the cardiac electrical signal directly. The output is an analog voltage waveform whose peaks correspond to heartbeat events. The ESP8266's ADC samples this signal, and the firmware extracts beats-per-minute by detecting peak intervals. Heart rate is one of the primary vital signs in clinical assessment, with normal resting values typically between 60–100 BPM; deviations may indicate arrhythmia, dehydration, fever, or cardiovascular distress.
 
 ---
 
@@ -210,13 +209,9 @@ The heart rate sensor measures the patient's pulse through either **photoplethys
 
 | View | File |
 |---|---|
-| Hardware Setup | ![Hardware](Images/hardware_setup.jpg) |
-| Circuit Diagram | ![Circuit](Circuit_Diagram/circuit_schematic.png) |
-| Blynk Dashboard | ![Blynk](Images/blynk_dashboard.png) |
-| ThingSpeak Channel Graphs | ![ThingSpeak](Images/thingspeak_graphs.png) |
+| Setup | <img width="1200" height="1600" alt="WhatsApp Image 2026-05-18 at 15 08 40" src="https://github.com/user-attachments/assets/93ed0e9a-f279-428e-b841-a68b32757793" /> |
+| Blynk Dashboard | <img width="1040" height="621" alt="image" src="https://github.com/user-attachments/assets/5348e5f8-b7ee-42a8-994e-330781b00b37" /> |
 | ML Prediction Output (Colab) | ![ML](Images/ml_prediction_output.png) |
-
-> *Replace placeholders with actual screenshots after completing hardware setup and simulation.*
 
 ---
 
@@ -233,42 +228,15 @@ The heart rate sensor measures the patient's pulse through either **photoplethys
 
 ## Future Improvements
 
-- Integration of a **pulse oximeter (SpO2) sensor** for blood oxygen saturation monitoring
-- Full **ECG waveform acquisition and analysis** with arrhythmia detection algorithms
-- Replacement of SVM with **deep learning models** (LSTM or CNN) for time-series vital sign analysis
-- Real-time **push notification system** to registered physician or caregiver mobile devices
-- Migration to a **wearable form factor** using low-power microcontrollers (ESP32 with BLE)
-- Integration with a **cloud database** (Firebase or AWS DynamoDB) for long-term patient record storage
-- Development of a **dedicated physician web dashboard** with patient history, trends, and alerts
-- **Real-time anomaly detection** using statistical process control or unsupervised ML methods
-
----
-
-## Folder Structure
-
-```
-Remote-Health-Monitoring-System/
-│
-├── Arduino_Code/
-│   └── health_monitor.ino              # ESP8266 firmware
-│
-├── ML_Model/
-│   └── health_risk_svm.ipynb           # Google Colab training notebook
-│
-├── Dataset/
-│   └── healthcare_dataset.csv          # Kaggle dataset used for training
-│
-├── Circuit_Diagram/
-│   └── circuit_schematic.png           # Full wiring diagram
-│
-├── Images/
-│   ├── hardware_setup.jpg
-│   ├── blynk_dashboard.png
-│   ├── thingspeak_graphs.png
-│   └── ml_prediction_output.png
-│
-└── README.md
-```
+- Integration of a pulse oximeter (SpO2) sensor for blood oxygen saturation monitoring
+- Full ECG waveform acquisition and analysis with arrhythmia detection algorithms
+- Replacement of SVM with deep learning models (LSTM or CNN) for time-series vital sign analysis
+- Real-time push notification system to registered physician or caregiver mobile devices
+- Migration to a wearable form factor using low-power microcontrollers (ESP32 with BLE)
+- Integration with a cloud database (Firebase or AWS DynamoDB) for long-term patient record storage
+- Development of a dedicated physician web dashboard with patient history, trends, and alerts
+- Real-time anomaly detection using statistical process control or unsupervised ML methods
+  
 
 ---
 
@@ -339,7 +307,3 @@ The system validates the feasibility of deploying low-cost IoT infrastructure al
 ---
 
 <div align="center">
-
-*Developed as part of Electronics and Communication Engineering coursework — IoT and Machine Learning*
-
-</div>
